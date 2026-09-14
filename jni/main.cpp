@@ -85,9 +85,9 @@ static constexpr uint32_t ARM64_RET =
  * =========================================================
  */
 
-static constexpr bool ENABLE_CHECKER_PATCHES = false;
+static constexpr bool ENABLE_CHECKER_PATCHES = true;
 
-static constexpr bool ENABLE_SKIP_ALL_CALL = true;
+static constexpr bool ENABLE_SKIP_ALL_CALL = false;
 
 /*
  * Tunggu sebelum panggil SkipAllTutorials.
@@ -423,31 +423,105 @@ static bool call_skip_all_tutorials(
  * =========================================================
  */
 
+
+static bool check32(
+    uintptr_t address,
+    uint32_t expected
+) {
+    return
+        *reinterpret_cast<volatile uint32_t *>(address)
+        == expected;
+}
+
+static bool verify_return_bool(
+    uintptr_t base,
+    uintptr_t rva,
+    bool result
+) {
+    uintptr_t address = base + rva;
+
+    uint32_t expected =
+        result ? ARM64_MOV_W0_1 : ARM64_MOV_W0_0;
+
+    return
+        check32(address, expected) &&
+        check32(address + 4, ARM64_RET);
+}
+
+static bool verify_return_void(
+    uintptr_t base,
+    uintptr_t rva
+) {
+    return check32(base + rva, ARM64_RET);
+}
+
+static void freeze_checker_patches(
+    uintptr_t base
+) {
+    if (!verify_return_bool(
+            base,
+            RVA_IS_FINISHED_INT,
+            true)) {
+
+        patch_return_bool(
+            base,
+            RVA_IS_FINISHED_INT,
+            true);
+
+        LOGI("repatched IsFinished(int)");
+    }
+
+    if (!verify_return_bool(
+            base,
+            RVA_IS_FINISHED_TYPE,
+            true)) {
+
+        patch_return_bool(
+            base,
+            RVA_IS_FINISHED_TYPE,
+            true);
+
+        LOGI("repatched IsFinished(type)");
+    }
+
+    if (!verify_return_bool(
+            base,
+            RVA_GET_CURRENT_TUTORIAL,
+            false)) {
+
+        patch_return_bool(
+            base,
+            RVA_GET_CURRENT_TUTORIAL,
+            false);
+
+        LOGI("repatched GetCurrentTutorial");
+    }
+
+    if (!verify_return_void(
+            base,
+            RVA_RESET_CURRENT_TUTORIAL)) {
+
+        patch_return_void(
+            base,
+            RVA_RESET_CURRENT_TUTORIAL);
+
+        LOGI("repatched ResetTutorial");
+    }
+}
+
 static void *worker(void *) {
 
     LOGI("worker started");
 
     uintptr_t base = 0;
 
-    /*
-     * Tunggu libunity.so sampai muncul.
-     *
-     * 300 * 200ms = 60 detik.
-     */
-    for (
-        int i = 0;
-        i < 300;
-        ++i
-    ) {
+    // Tunggu libunity.so maksimal sekitar 60 detik.
+    for (int i = 0; i < 300; ++i) {
 
-        base =
-            find_library_base(
-                TARGET_LIBRARY
-            );
+        base = find_library_base(TARGET_LIBRARY);
 
-        if (base) {
+        if (base)
             break;
-        }
 
         usleep(200000);
     }
@@ -468,62 +542,16 @@ static void *worker(void *) {
         reinterpret_cast<void *>(base)
     );
 
+    // Tunggu init awal game.
+    sleep(2);
 
-    /*
-     * =====================================================
-     * Checker patches
-     * =====================================================
-     */
+    // Initial patch.
+    apply_checker_patches(base);
 
-    if (ENABLE_CHECKER_PATCHES) {
+    LOGI("tutorial freeze active");
 
-        /*
-         * Kasih Unity waktu init sebentar.
-         */
-        sleep(2);
-
-        /*
-         * Ulang beberapa kali kalau ada init ulang.
-         */
-        for (
-            int i = 0;
-            i < 10;
-            ++i
-        ) {
-
-            uintptr_t current =
-                find_library_base(
-                    TARGET_LIBRARY
-                );
-
-            if (current) {
-
-                apply_checker_patches(
-                    current
-                );
-            }
-
-            sleep(1);
-        }
-    }
-
-
-    /*
-     * =====================================================
-     * Tunggu game state/login manager siap.
-     * =====================================================
-     */
-
-    if (ENABLE_SKIP_ALL_CALL) {
-
-        LOGI(
-            "waiting %d sec before SkipAllTutorials",
-            SKIP_CALL_DELAY_SECONDS
-        );
-
-        sleep(
-            SKIP_CALL_DELAY_SECONDS
-        );
+    // Freeze/verify selama proses hidup.
+    while (true) {
 
         uintptr_t current =
             find_library_base(
@@ -531,46 +559,15 @@ static void *worker(void *) {
             );
 
         if (!current) {
-
-            LOGE(
-                "library missing before SkipAllTutorials"
-            );
-
-            return nullptr;
+            LOGE("target library disappeared");
+            break;
         }
 
-        call_skip_all_tutorials(
-            current
-        );
+        freeze_checker_patches(current);
+
+        // Verify 10x/detik, tapi hanya menulis kalau byte berubah.
+        usleep(100000);
     }
-
-
-    /*
-     * =====================================================
-     * Setelah call asli, pasang checker sekali lagi.
-     * =====================================================
-     */
-
-    if (ENABLE_CHECKER_PATCHES) {
-
-        sleep(2);
-
-        uintptr_t current =
-            find_library_base(
-                TARGET_LIBRARY
-            );
-
-        if (current) {
-
-            apply_checker_patches(
-                current
-            );
-        }
-    }
-
-    LOGI(
-        "worker finished"
-    );
 
     return nullptr;
 }
