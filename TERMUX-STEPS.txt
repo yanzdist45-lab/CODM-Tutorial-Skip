@@ -1,0 +1,21 @@
+1. pkg update && pkg install git
+
+2. Extract source ZIP.
+
+3. cd CODM-Tutorial-Skip
+   git init
+   git add .
+   git commit -m "initial"
+   git branch -M main
+
+4. Buat repo kosong di GitHub.
+
+5. git remote add origin https://github.com/USERNAME/CODM-Tutorial-Skip.git
+   git push -u origin main
+
+6. GitHub > Actions > Build Module > Run workflow.
+
+7. Download artifact, lalu install CODM-Tutorial-Skip.zip lewat KernelSU.
+
+8. Reboot dan cek:
+   su -c 'logcat -s CODM-TutorialSkip'

@@ -1,0 +1,51 @@
+name: Build Module
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Zygisk API header
+        run: |
+          set -eux
+          curl -L https://raw.githubusercontent.com/topjohnwu/zygisk-module-sample/master/module/jni/zygisk.hpp -o jni/zygisk.hpp
+          test -s jni/zygisk.hpp
+
+      - name: Build
+        run: |
+          set -eux
+          "$ANDROID_NDK_HOME/ndk-build" \
+            NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
+            APP_BUILD_SCRIPT="$GITHUB_WORKSPACE/jni/Android.mk" \
+            NDK_APPLICATION_MK="$GITHUB_WORKSPACE/jni/Application.mk" \
+            NDK_OUT="$GITHUB_WORKSPACE/build/obj" \
+            NDK_LIBS_OUT="$GITHUB_WORKSPACE/build/libs"
+
+      - name: Package
+        run: |
+          set -eux
+          mkdir -p out/zygisk
+          cp module/module.prop out/
+          cp module/action.sh out/
+          cp module/service.sh out/
+          cp build/libs/arm64-v8a/libcodm_tutorial_skip.so out/zygisk/arm64-v8a.so
+          chmod 0755 out/action.sh out/service.sh
+          cd out
+          zip -r ../CODM-Tutorial-Skip.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CODM-Tutorial-Skip
+          path: CODM-Tutorial-Skip.zip

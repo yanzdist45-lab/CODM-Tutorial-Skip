@@ -1,0 +1,6 @@
+id=codm_tutorial_skip
+name=CODM Tutorial Skip
+version=v1.0
+versionCode=1
+author=Yanz Cloud
+description=Zygisk native tutorial-state patch for CODM arm64.
