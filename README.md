@@ -18,3 +18,4 @@ su -c 'logcat -s CODM-TutorialSkip'
 
 RVA di `jni/main.cpp` harus sesuai versi game/library yang sedang dipakai.
 Default library: `libunity.so`.
+# CODM-Tutorial-Skip
