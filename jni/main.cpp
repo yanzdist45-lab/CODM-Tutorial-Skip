@@ -70,6 +70,38 @@ static constexpr uintptr_t RVA_SKIP_ALL_TUTORIALS =
  * =========================================================
  */
 
+
+// ============================================================
+// Tutorial freeze RVA - current dump.cs
+// ============================================================
+
+// TutorialManager
+static constexpr uintptr_t RVA_IS_FINISHED_INT =
+    0x9DE0A04;
+
+static constexpr uintptr_t RVA_IS_FINISHED_TYPE =
+    0x9DE3174;
+
+static constexpr uintptr_t RVA_CHECK_ALL_FINISHED =
+    0x9DE1AF0;
+
+// FTUE
+static constexpr uintptr_t RVA_WILL_ENTER_FTUE =
+    0xAF08534;
+
+// Tutorial utility
+static constexpr uintptr_t RVA_IS_NOT_FINISHED =
+    0xB698AD8;
+
+static constexpr uintptr_t RVA_IS_NOT_FINISHED_RUN =
+    0xB698BD8;
+
+static constexpr uintptr_t RVA_ALL_OUTGAME_FINISHED =
+    0xB698DA8;
+
+static constexpr uintptr_t RVA_MAIN_FINISHED =
+    0xB698FD8;
+
 static constexpr uint32_t ARM64_MOV_W0_0 =
     0x52800000;
 
@@ -291,86 +323,62 @@ static bool patch_return_void(
 static void apply_checker_patches(
     uintptr_t base
 ) {
-
-    LOGI(
-        "apply checker patches base=%p",
-        reinterpret_cast<void *>(base)
+    /*
+     * TRUE
+     */
+    patch_return_bool(
+        base,
+        RVA_IS_FINISHED_INT,
+        true
     );
 
-    bool a =
-        patch_return_bool(
-            base,
-            RVA_IS_FINISHED_INT,
-            true
-        );
-
-    bool b =
-        patch_return_bool(
-            base,
-            RVA_IS_FINISHED_TYPE,
-            true
-        );
-
-    /*
-     * Current tutorial -> 0
-     */
-    bool c =
-        patch_return_bool(
-            base,
-            RVA_GET_CURRENT_TUTORIAL,
-            false
-        );
-
-    /*
-     * Cegah reset tutorial.
-     */
-    bool d =
-        patch_return_void(
-            base,
-            RVA_RESET_CURRENT_TUTORIAL
-        );
-
-    LOGI(
-        "checker patches: %d %d %d %d",
-        a,
-        b,
-        c,
-        d
+    patch_return_bool(
+        base,
+        RVA_IS_FINISHED_TYPE,
+        true
     );
+
+    patch_return_bool(
+        base,
+        RVA_CHECK_ALL_FINISHED,
+        true
+    );
+
+    patch_return_bool(
+        base,
+        RVA_ALL_OUTGAME_FINISHED,
+        true
+    );
+
+    patch_return_bool(
+        base,
+        RVA_MAIN_FINISHED,
+        true
+    );
+
+    /*
+     * FALSE
+     */
+    patch_return_bool(
+        base,
+        RVA_WILL_ENTER_FTUE,
+        false
+    );
+
+    patch_return_bool(
+        base,
+        RVA_IS_NOT_FINISHED,
+        false
+    );
+
+    patch_return_bool(
+        base,
+        RVA_IS_NOT_FINISHED_RUN,
+        false
+    );
+
+    LOGI("tutorial checker patches applied");
 }
-
-
-/*
- * =========================================================
- * SkipAllTutorials
- *
- * dump.cs:
- *
- * public static void SkipAllTutorials(
- *     int reason = 0,
- *     bool showTip = true
- * )
- *
- * Native IL2CPP biasanya punya argumen MethodInfo*
- * tersembunyi sebagai argumen terakhir.
- *
- * Jadi signature:
- *
- * void (
- *     int32_t reason,
- *     bool showTip,
- *     void *methodInfo
- * )
- * =========================================================
- */
-
-using SkipAllTutorialsFn =
-    void (*)(
-        int32_t reason,
-        bool showTip,
-        void *methodInfo
-    );
-
 
 static bool call_skip_all_tutorials(
     uintptr_t base
@@ -458,6 +466,10 @@ static bool verify_return_void(
 static void freeze_checker_patches(
     uintptr_t base
 ) {
+    /*
+     * FINISHED = TRUE
+     */
+
     if (!verify_return_bool(
             base,
             RVA_IS_FINISHED_INT,
@@ -468,8 +480,9 @@ static void freeze_checker_patches(
             RVA_IS_FINISHED_INT,
             true);
 
-        LOGI("repatched IsFinished(int)");
+        LOGI("repatch IsTutorialFinished(int)");
     }
+
 
     if (!verify_return_bool(
             base,
@@ -481,31 +494,95 @@ static void freeze_checker_patches(
             RVA_IS_FINISHED_TYPE,
             true);
 
-        LOGI("repatched IsFinished(type)");
+        LOGI("repatch IsTutorialFinished(type)");
     }
+
 
     if (!verify_return_bool(
             base,
-            RVA_GET_CURRENT_TUTORIAL,
+            RVA_CHECK_ALL_FINISHED,
+            true)) {
+
+        patch_return_bool(
+            base,
+            RVA_CHECK_ALL_FINISHED,
+            true);
+
+        LOGI("repatch CheckAllTutorialsFinished");
+    }
+
+
+    if (!verify_return_bool(
+            base,
+            RVA_ALL_OUTGAME_FINISHED,
+            true)) {
+
+        patch_return_bool(
+            base,
+            RVA_ALL_OUTGAME_FINISHED,
+            true);
+
+        LOGI("repatch OutGameFinished");
+    }
+
+
+    if (!verify_return_bool(
+            base,
+            RVA_MAIN_FINISHED,
+            true)) {
+
+        patch_return_bool(
+            base,
+            RVA_MAIN_FINISHED,
+            true);
+
+        LOGI("repatch MainTutorialFinished");
+    }
+
+
+    /*
+     * NOT FINISHED / FTUE = FALSE
+     */
+
+    if (!verify_return_bool(
+            base,
+            RVA_WILL_ENTER_FTUE,
             false)) {
 
         patch_return_bool(
             base,
-            RVA_GET_CURRENT_TUTORIAL,
+            RVA_WILL_ENTER_FTUE,
             false);
 
-        LOGI("repatched GetCurrentTutorial");
+        LOGI("repatch WillEnterFtue");
     }
 
-    if (!verify_return_void(
-            base,
-            RVA_RESET_CURRENT_TUTORIAL)) {
 
-        patch_return_void(
+    if (!verify_return_bool(
             base,
-            RVA_RESET_CURRENT_TUTORIAL);
+            RVA_IS_NOT_FINISHED,
+            false)) {
 
-        LOGI("repatched ResetTutorial");
+        patch_return_bool(
+            base,
+            RVA_IS_NOT_FINISHED,
+            false);
+
+        LOGI("repatch IsTutorialNotFinished");
+    }
+
+
+    if (!verify_return_bool(
+            base,
+            RVA_IS_NOT_FINISHED_RUN,
+            false)) {
+
+        patch_return_bool(
+            base,
+            RVA_IS_NOT_FINISHED_RUN,
+            false);
+
+        LOGI("repatch IsTutorialNotFinishedAndRunning");
     }
 }
 
