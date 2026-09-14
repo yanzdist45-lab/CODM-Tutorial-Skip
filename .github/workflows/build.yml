@@ -1,26 +1,46 @@
-name: Build Module
+name: Build CODM Tutorial Skip
 
 on:
   workflow_dispatch:
+
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
 
 jobs:
+
   build:
-    runs-on: ubuntu-latest
+
+    runs-on: ubuntu-24.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Android NDK
-        id: setup-ndk
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r27d
-          add-to-path: false
 
-      - name: Download Zygisk API header
+      - name: Find Android NDK
+        shell: bash
+        run: |
+          set -eux
+
+          NDK="$(find /usr/local/lib/android/sdk/ndk \
+            -maxdepth 1 \
+            -mindepth 1 \
+            -type d \
+            | sort -V \
+            | tail -n1)"
+
+          echo "Using NDK: $NDK"
+
+          echo "ANDROID_NDK_HOME=$NDK" \
+            >> "$GITHUB_ENV"
+
+          test -x "$NDK/ndk-build"
+
+
+      - name: Download Zygisk API
+        shell: bash
         run: |
           set -eux
 
@@ -30,13 +50,11 @@ jobs:
 
           test -s jni/zygisk.hpp
 
-      - name: Build arm64 module
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Build
+        shell: bash
         run: |
           set -eux
-
-          echo "NDK: $ANDROID_NDK_HOME"
 
           "$ANDROID_NDK_HOME/ndk-build" \
             NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
@@ -45,25 +63,28 @@ jobs:
             NDK_OUT="$GITHUB_WORKSPACE/build/obj" \
             NDK_LIBS_OUT="$GITHUB_WORKSPACE/build/libs"
 
-      - name: Verify build
-        run: |
-          set -eux
 
-          ls -lah build/libs/arm64-v8a/
-
-          test -f \
-            build/libs/arm64-v8a/libcodm_tutorial_skip.so
-
-      - name: Assemble KernelSU module
+      - name: Prepare module
+        shell: bash
         run: |
           set -eux
 
           rm -rf out
-          mkdir -p out/zygisk
 
-          cp module/module.prop out/
-          cp module/action.sh out/
-          cp module/service.sh out/
+          mkdir -p \
+            out/zygisk
+
+          cp \
+            module/module.prop \
+            out/module.prop
+
+          cp \
+            module/action.sh \
+            out/action.sh
+
+          cp \
+            module/service.sh \
+            out/service.sh
 
           cp \
             build/libs/arm64-v8a/libcodm_tutorial_skip.so \
@@ -73,19 +94,23 @@ jobs:
             out/action.sh \
             out/service.sh
 
+
+      - name: Create ZIP
+        shell: bash
+        run: |
+          set -eux
+
           cd out
 
-          zip -r \
+          zip \
+            -9 \
+            -r \
             ../CODM-Tutorial-Skip.zip \
             .
 
-      - name: Show ZIP
-        run: |
-          unzip -l CODM-Tutorial-Skip.zip
 
-      - name: Upload module
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: CODM-Tutorial-Skip
           path: CODM-Tutorial-Skip.zip
-          if-no-files-found: error
