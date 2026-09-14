@@ -49,15 +49,12 @@ static constexpr uintptr_t RVA_RESET_CURRENT_TUTORIAL =
  * =========================================================
  * RVA BARU DARI dump.cs
  *
- * public static void SkipAllTutorials(
  *     int reason = 0,
  *     bool showTip = true
  * )
  * =========================================================
  */
 
-static constexpr uintptr_t RVA_SKIP_ALL_TUTORIALS =
-    0xB69813C;
 
 /*
  * =========================================================
@@ -116,16 +113,11 @@ static constexpr uint32_t ARM64_RET =
 
 static constexpr bool ENABLE_CHECKER_PATCHES = true;
 
-static constexpr bool ENABLE_SKIP_ALL_CALL = false;
-
 /*
- * Tunggu sebelum panggil SkipAllTutorials.
  *
  * Jangan terlalu cepat karena manager tutorial/game state
  * mungkin belum dibuat.
  */
-static constexpr int SKIP_CALL_DELAY_SECONDS = 45;
-
 
 /*
  * =========================================================
@@ -375,50 +367,6 @@ static void apply_checker_patches(
     );
 
     LOGI("tutorial checker patches applied");
-}
-
-static bool call_skip_all_tutorials(
-    uintptr_t base
-) {
-
-    uintptr_t address =
-        base + RVA_SKIP_ALL_TUTORIALS;
-
-    LOGI(
-        "SkipAllTutorials addr=%p",
-        reinterpret_cast<void *>(address)
-    );
-
-    auto fn =
-        reinterpret_cast<SkipAllTutorialsFn>(
-            address
-        );
-
-    if (!fn) {
-
-        LOGE(
-            "SkipAllTutorials function null"
-        );
-
-        return false;
-    }
-
-    /*
-     * reason = 0
-     * showTip = false
-     * MethodInfo = nullptr
-     */
-    fn(
-        0,
-        false,
-        nullptr
-    );
-
-    LOGI(
-        "SkipAllTutorials called"
-    );
-
-    return true;
 }
 
 
