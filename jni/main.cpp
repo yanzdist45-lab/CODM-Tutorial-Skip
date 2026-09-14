@@ -44,11 +44,6 @@ static constexpr uintptr_t RVA_GET_CURRENT_TUTORIAL =
 static constexpr uintptr_t RVA_RESET_CURRENT_TUTORIAL =
     0x9DE1494;
 
-static constexpr uintptr_t RVA_IS_FINISHED_INT =
-    0x9DE3174;
-
-static constexpr uintptr_t RVA_IS_FINISHED_TYPE =
-    0x9DE31D4;
 
 /*
  * =========================================================
@@ -71,16 +66,18 @@ static constexpr uintptr_t RVA_SKIP_ALL_TUTORIALS =
  */
 
 
-// ============================================================
-// Tutorial freeze RVA - current dump.cs
-// ============================================================
-
-// TutorialManager
 static constexpr uintptr_t RVA_IS_FINISHED_INT =
     0x9DE0A04;
 
 static constexpr uintptr_t RVA_IS_FINISHED_TYPE =
     0x9DE3174;
+
+// ============================================================
+// Tutorial freeze RVA - current dump.cs
+// ============================================================
+
+// TutorialManager
+
 
 static constexpr uintptr_t RVA_CHECK_ALL_FINISHED =
     0x9DE1AF0;
