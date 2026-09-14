@@ -85,7 +85,7 @@ static constexpr uint32_t ARM64_RET =
  * =========================================================
  */
 
-static constexpr bool ENABLE_CHECKER_PATCHES = true;
+static constexpr bool ENABLE_CHECKER_PATCHES = false;
 
 static constexpr bool ENABLE_SKIP_ALL_CALL = true;
 
@@ -95,7 +95,7 @@ static constexpr bool ENABLE_SKIP_ALL_CALL = true;
  * Jangan terlalu cepat karena manager tutorial/game state
  * mungkin belum dibuat.
  */
-static constexpr int SKIP_CALL_DELAY_SECONDS = 15;
+static constexpr int SKIP_CALL_DELAY_SECONDS = 45;
 
 
 /*
